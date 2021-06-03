@@ -1,134 +1,139 @@
 ## Techniques Used 
 
-- Using VSCode to commit files to github 
-- Creating a .gitignore file
-- Exporting modules
+- Use Postman to test server routes
 - Non-web server Node.js JavaScript code
     - Lambda expressions
-    - Object destructuring
-    - for loops
+    - for...of statments
     - Tenary operater
-    - .push() method 
-    - .reduce() method
-    - switch operater
+    - JSON.parse() method 
     - if...else statments
     - template literals
 - Web server Node.js JavaScript code
   - Installing fastify
   - Initializing as a node.js file
-  - Using http "GET" verb
-  - Utilizing the html MIME type
+  - Using http "GET" and "POST" verbs
+  - Utilizing the json and html MIME type
   - Returning a status code
   - Responding to client requests and handling query parameters
-  - Using readFile() fs method
+  - Handle an unmatched route
 
 ## Objectives
 
 
-### Write functions which can identify and handle valid coin objects. Export the coinCount() which calculates the value of coin objects.
-
+### Update server code to handle requests from the client. Return information from the "student" array as JSON or add a new student.
 ```
-//returns true if coin is a valid value
-let validDenomination = (coin) => {let coinDenom = [1, 5, 10, 25, 50, 100]; return (coinDenom.indexOf(coin)!== -1 ? true : false)};
-
-
-//returns calculated coin object
-let valueFromCoinObject = (obj) => {
-     
-    const {denom = 0, count = 0} = obj;
-    return denom*count;
-};
-//console.log(valueFromCoinObject({denom: 5, count: 3}))
-
-//returns value of coin objects within an array
-let valueFromArray = (arr) => {
-   
-    let coinArr = [];
-    for(i=0; i< arr.length; i++) {
-        coinArr.push(valueFromCoinObject(arr[i]));
+const students = [
+    {
+      id: 1,
+      last: "Last1",
+      first: "First1",
+    },
+    {
+      id: 2,
+      last: "Last2",
+      first: "First2",
+    },
+    {
+      id: 3,
+      last: "Last3",
+      first: "First3",
     }
-    return coinArr.reduce((add, current) => add + current);
-};
+  ];
 
-
-let coinCount = (...coinage) => `${valueFromArray(coinage)}`;
-
-
-console.log("{}", coinCount({denom: 5, count: 3}));
-console.log("{}s", coinCount({denom: 5, count: 3},{denom: 10, count: 2}));
-const coins = [{denom: 25, count: 2},{denom: 1, count: 7}];
-console.log("...[{}]", coinCount(...coins));
-console.log("[{}]", coinCount(coins));
-
-module.exports = {coinCount, coins};
-```
-
-
-### Create a server that requires fastify. Read the index.html file. Handle three routes and requests from the client to respond with the provided coin objects value.  
-
-```
-const fs = require("fs");
+// Require the Fastify framework and instantiate it
 const fastify = require("fastify")();
-const {coinCount, coins} = require("./p3-module.js");
-
-
-fastify.get("/", (req, res) => {
-    fs.readFile(`${__dirname}/index.html`, (err, data) => {
-        if (err){
-            res.code = 500;
-            res.header('Content-Type', 'text/html');
-        }else{
-            res.statusCode = 200;
-            res.header('Content-Type', 'text/html');
-            res.send(data);
-        }
-    })
+// Handle GET verb for / route using Fastify
+// Note use of "chain" dot notation syntax
+fastify.get("/cit/student", (request, reply) => {
+  reply
+    .code(200)
+    .header("Content-Type", "application/json; charset=utf-8")
+    .send(students);
 });
 
-fastify.get("/coin", (req, res) => {
-    
-    const {denom = 0, count = 0} = req.query;
-    console.log(req.query)
-    let coinValue = coinCount({denom, count});
-
-        res.statusCode = 200;
-        res.header('Content-Type', 'text/html');
-        res.send(`<h2>Value of ${count} of ${denom} is ${coinValue}</h2><br /><a href="/">Home</a>`);
-});
-
-fastify.get("/coins", (req, res) => {
-    const {option} = req.query
-    console.log(option)
-    switch(option) {
-        case "1":
-            console.log("hello")
-            coinValue = coinCount({ denom: 5, count: 3 }, { denom: 10, count: 2 }); // option = 1
-            break;
-        case "2":
-            coinValue = coinCount(...coins);    // option = 2
-            break;
-        case "3":
-            coinValue = coinCount(coins);    // Extra credit: option = 3
-        default:
-            coinValue = 0;
+//new route
+fastify.get("/cit/student/:id", (request, reply) => {
+    let studentIDFromClient = request.params.id;
+    let studentToSendToClient = null;
+    for(studentInArray of students) {
+        if(studentInArray.id == studentIDFromClient) {
+        studentToSendToClient = studentInArray;
+        break;
     }
+}
+if (studentToSendToClient != null){
+    reply
+      .code(200)
+      .header("Content-Type", "application/json; charset=utf-8")
+      .send(studentToSendToClient);
+}else{
+    reply
+    .code(200)
+    .header("Content-Type", "text/html; charset=utf-8")
+    .send("Could not find student with given id.");
+}
+  });
 
-        res.statusCode = 200;
-        res.header('Content-Type', 'text/html');
-        res.send(`<h2>Option ${option} value is ${coinValue}</h2><br /><a href="/">Home</a>`);
-});
+  //new route
+fastify.get("*", (request, reply) => {
+    reply
+      .code(200)
+      .header("Content-Type", "text/html; charset=utf-8")
+      .send(`<h1>Unmatched route</h1>`);
+  });
 
-const hostname = 'localhost';
-const port = 8080;
-fastify.listen(port, hostname, () => {
-    console.log(`server running @ http://${hostname}:${port}/`)
+  fastify.post("/cit/student/add", (request, reply) => {
+      let objectFromClient = JSON.parse(request.body);
+      console.log(objectFromClient);
+
+      let maxID = 0;
+      for (individualStudent of students) {
+        if(maxID < individualStudent.id) {
+          maxID = individualStudent.id;
+        }
+      }
+
+     let genteratedStudent = {
+        id: maxID + 1,
+      last: objectFromClient.last,
+      first: objectFromClient.first,
+      }; 
+
+      students.push(genteratedStudent);
+
+    reply
+      .code(200)
+      .header("Content-Type", "application/json; charset=utf-8")
+      .send(genteratedStudent);
+
+  });
+
+// Start server and listen to requests using Fastify
+const listenIP = "localhost";
+const listenPort = 8080;
+fastify.listen(listenPort, listenIP, (err, address) => {
+  if (err) {
+    console.log(err);
+    process.exit(1);
+  }
+  console.log(`Server listening on ${address}`);
 });
 
 ```
-Index.html (provided by proffesor):
 
-[index.html](https://lizz02.github.io/cit281-p3/index1.html)
+
+### Test routes with Postman  
+
+Route responses:
+
+![AllStudents](AllStudents.png)
+
+![SingleStudent](SingleStudnet.png)
+
+![StudentPost](StudentPost.png)
+
+![Unmatched](Unmatched.png)
 
 Node.js configuration file:
 
-[package.json](https://lizz02.github.io/cit281-p3/package.json)
+[package.json](https://lizz02.github.io/cit281-lab04/package.json)
