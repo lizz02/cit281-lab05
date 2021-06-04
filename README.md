@@ -3,10 +3,10 @@
 - Use Postman to test server routes
 - Non-web server Node.js JavaScript code
     - Lambda expressions
-    - for...of statments
-    - Tenary operater
+    - for...of statements
+    - Ternary operator
     - JSON.parse() method 
-    - if...else statments
+    - if...else statements
     - template literals
 - Web server Node.js JavaScript code
   - Installing fastify
